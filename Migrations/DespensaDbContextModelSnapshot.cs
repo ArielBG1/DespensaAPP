@@ -450,6 +450,32 @@ namespace DespensaApp.Migrations
                     b.ToTable("productos");
                 });
 
+            modelBuilder.Entity("DespensaApp.Models.Entities.ProductoImagen", b =>
+                {
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("producto_id");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<byte[]>("Datos")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("datos");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("ProductoId");
+
+                    b.ToTable("producto_imagenes");
+                });
+
             modelBuilder.Entity("DespensaApp.Models.Entities.Proveedor", b =>
                 {
                     b.Property<int>("Id")
@@ -727,6 +753,17 @@ namespace DespensaApp.Migrations
                     b.Navigation("Proveedor");
                 });
 
+            modelBuilder.Entity("DespensaApp.Models.Entities.ProductoImagen", b =>
+                {
+                    b.HasOne("DespensaApp.Models.Entities.Producto", "Producto")
+                        .WithOne("Imagen")
+                        .HasForeignKey("DespensaApp.Models.Entities.ProductoImagen", "ProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Producto");
+                });
+
             modelBuilder.Entity("DespensaApp.Models.Entities.Venta", b =>
                 {
                     b.HasOne("DespensaApp.Models.Entities.Usuario", "Usuario")
@@ -755,6 +792,8 @@ namespace DespensaApp.Migrations
                     b.Navigation("DetallesCompra");
 
                     b.Navigation("DetallesVenta");
+
+                    b.Navigation("Imagen");
 
                     b.Navigation("MovimientosStock");
                 });

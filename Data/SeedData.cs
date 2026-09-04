@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using DespensaApp.Data;
 using DespensaApp.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,12 +25,11 @@ public static class SeedData
             return;
         }
 
-        // En producción conviene definir estas contraseñas por variable de entorno.
-        var adminPassword = config["ADMIN_PASSWORD"] ?? "Admin1234!";
-        var cajeroPassword = config["CAJERO_PASSWORD"] ?? "Cajero1234!";
-
         if (!await db.Usuarios.AnyAsync())
         {
+            var adminPassword = ObtenerPassword(config, "ADMIN_PASSWORD", "admin@despensa.com", logger);
+            var cajeroPassword = ObtenerPassword(config, "CAJERO_PASSWORD", "cajero@despensa.com", logger);
+
             db.Usuarios.AddRange(
                 new Usuario
                 {
@@ -93,5 +93,26 @@ public static class SeedData
         }
 
         await db.SaveChangesAsync();
+    }
+
+    // Sin "I", "l", "O", "0" ni "1" para que no se confundan al dictarla.
+    private const string CaracteresPassword = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    /// <summary>
+    /// Toma la contraseña inicial de una variable de entorno. Si no está definida genera una al
+    /// azar y la muestra una única vez en el log, para no dejar contraseñas escritas en el código.
+    /// </summary>
+    private static string ObtenerPassword(IConfiguration config, string variable, string email, ILogger logger)
+    {
+        var password = config[variable];
+        if (!string.IsNullOrWhiteSpace(password)) return password;
+
+        password = RandomNumberGenerator.GetString(CaracteresPassword, 16);
+        logger.LogWarning(
+            "No se definió {Variable}: se generó una contraseña al azar para {Email} -> {Password}. " +
+            "Anotala ahora, no vuelve a mostrarse. Para elegirla vos, definí {Variable} antes del primer arranque.",
+            variable, email, password, variable);
+
+        return password;
     }
 }

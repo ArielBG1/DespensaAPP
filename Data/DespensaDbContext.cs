@@ -10,6 +10,7 @@ public class DespensaDbContext(DbContextOptions<DespensaDbContext> options) : Db
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<CodigoBarraAlternativo> CodigosBarraAlternativos => Set<CodigoBarraAlternativo>();
+    public DbSet<ProductoImagen> ProductoImagenes => Set<ProductoImagen>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<DetalleVenta> DetallesVenta => Set<DetalleVenta>();
     public DbSet<MovimientoStock> MovimientosStock => Set<MovimientoStock>();
@@ -48,6 +49,14 @@ public class DespensaDbContext(DbContextOptions<DespensaDbContext> options) : Db
             e.HasOne(c => c.Producto)
                 .WithMany(p => p.CodigosAlternativos)
                 .HasForeignKey(c => c.ProductoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductoImagen>(e =>
+        {
+            e.HasOne(i => i.Producto)
+                .WithOne(p => p.Imagen)
+                .HasForeignKey<ProductoImagen>(i => i.ProductoId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

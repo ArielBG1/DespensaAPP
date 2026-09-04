@@ -94,6 +94,18 @@ public class ProductosController(IProductoService service) : Controller
         return producto is null ? NotFound() : View(producto);
     }
 
+    // ── IMAGEN ───────────────────────────────────────────────────
+    // Las fotos viven en la base, no en disco: se sirven por acá.
+    [HttpGet]
+    [ResponseCache(Duration = 604800, Location = ResponseCacheLocation.Client)]
+    public async Task<IActionResult> Imagen(int id)
+    {
+        var imagen = await service.GetImagenAsync(id);
+        return imagen is null
+            ? NotFound()
+            : File(imagen.Value.datos, imagen.Value.contentType);
+    }
+
     // ── ELIMINAR (lógico) ────────────────────────────────────────
     [HttpPost]
     [Authorize(Roles = "Admin")]

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DespensaApp.Services;
 
-public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IProductoService
+public class ProductoService(DespensaDbContext db) : IProductoService
 {
     private static readonly string[] ImagenesPermitidas = [".jpg", ".jpeg", ".png", ".webp"];
     private const long MaxImagenBytes = 5 * 1024 * 1024; // 5 MB
@@ -164,12 +164,12 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
             vm.CodigosAlternativos, codigoBarra, idActualProducto: 0);
         if (errorCodigos is not null) return (false, errorCodigos);
 
-        string? imagenUrl = null;
+        ImagenSubida? imagenNueva = null;
         if (vm.ImagenFile is not null)
         {
-            var (url, errorImagen) = await GuardarImagenAsync(vm.ImagenFile);
+            var (subida, errorImagen) = await LeerImagenAsync(vm.ImagenFile);
             if (errorImagen is not null) return (false, errorImagen);
-            imagenUrl = url;
+            imagenNueva = subida;
         }
 
         var producto = new Producto
@@ -184,7 +184,6 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
             PrecioVenta = vm.PrecioVenta,
             StockActual = vm.StockActual,
             StockMinimo = vm.StockMinimo,
-            ImagenUrl = imagenUrl,
             FechaVencimiento = vm.FechaVencimiento,
             Activo = vm.Activo,
             CreatedAt = DateTime.UtcNow,
@@ -196,6 +195,10 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
         {
             db.Productos.Add(producto);
             await db.SaveChangesAsync();
+
+            // La imagen se guarda despues del primer SaveChanges porque necesita el Id del producto.
+            if (imagenNueva is not null)
+                producto.ImagenUrl = await GuardarImagenAsync(producto.Id, imagenNueva.Value);
 
             foreach (var codigo in codigosAlternativos)
             {
@@ -254,11 +257,10 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
 
         if (vm.ImagenFile is not null)
         {
-            var (url, errorImagen) = await GuardarImagenAsync(vm.ImagenFile);
+            var (subida, errorImagen) = await LeerImagenAsync(vm.ImagenFile);
             if (errorImagen is not null) return (false, errorImagen);
 
-            EliminarImagenLocal(producto.ImagenUrl);
-            producto.ImagenUrl = url;
+            producto.ImagenUrl = await GuardarImagenAsync(producto.Id, subida!.Value);
         }
 
         producto.CodigoBarra = codigoBarra;
@@ -521,7 +523,10 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
 
     // ── IMAGEN ───────────────────────────────────────────────────
 
-    private async Task<(string? url, string? error)> GuardarImagenAsync(IFormFile archivo)
+    private readonly record struct ImagenSubida(byte[] Datos, string ContentType);
+
+    /// <summary>Valida el archivo subido y lo lee a memoria.</summary>
+    private static async Task<(ImagenSubida? imagen, string? error)> LeerImagenAsync(IFormFile archivo)
     {
         var ext = Path.GetExtension(archivo.FileName).ToLowerInvariant();
         if (!ImagenesPermitidas.Contains(ext))
@@ -529,22 +534,46 @@ public class ProductoService(DespensaDbContext db, IWebHostEnvironment env) : IP
         if (archivo.Length > MaxImagenBytes)
             return (null, "La imagen no puede superar los 5 MB.");
 
-        var carpeta = Path.Combine(env.WebRootPath, "uploads", "productos");
-        Directory.CreateDirectory(carpeta);
+        using var memoria = new MemoryStream();
+        await archivo.CopyToAsync(memoria);
 
-        var nombreArchivo = $"{Guid.NewGuid()}{ext}";
-        var rutaCompleta = Path.Combine(carpeta, nombreArchivo);
-
-        await using var stream = File.Create(rutaCompleta);
-        await archivo.CopyToAsync(stream);
-
-        return ($"/uploads/productos/{nombreArchivo}", null);
+        return (new ImagenSubida(memoria.ToArray(), ContentTypePara(ext)), null);
     }
 
-    private void EliminarImagenLocal(string? imagenUrl)
+    /// <summary>
+    /// Guarda o reemplaza la imagen del producto en la base y devuelve la URL para mostrarla.
+    /// No hace SaveChanges: lo hace quien llama, dentro de su propia transacción.
+    /// </summary>
+    private async Task<string> GuardarImagenAsync(int productoId, ImagenSubida imagen)
     {
-        if (string.IsNullOrEmpty(imagenUrl) || !imagenUrl.StartsWith("/uploads/")) return;
-        var ruta = Path.Combine(env.WebRootPath, imagenUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        if (File.Exists(ruta)) File.Delete(ruta);
+        var fila = await db.ProductoImagenes.FindAsync(productoId);
+        if (fila is null)
+        {
+            fila = new ProductoImagen { ProductoId = productoId };
+            db.ProductoImagenes.Add(fila);
+        }
+
+        fila.Datos = imagen.Datos;
+        fila.ContentType = imagen.ContentType;
+        fila.UpdatedAt = DateTime.UtcNow;
+
+        // El sufijo de versión evita que el navegador siga mostrando la foto anterior.
+        return $"/Productos/Imagen/{productoId}?v={fila.UpdatedAt.Ticks}";
     }
+
+    public async Task<(byte[] datos, string contentType)?> GetImagenAsync(int productoId)
+    {
+        var imagen = await db.ProductoImagenes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.ProductoId == productoId);
+
+        return imagen is null ? null : (imagen.Datos, imagen.ContentType);
+    }
+
+    private static string ContentTypePara(string extension) => extension switch
+    {
+        ".png" => "image/png",
+        ".webp" => "image/webp",
+        _ => "image/jpeg"
+    };
 }

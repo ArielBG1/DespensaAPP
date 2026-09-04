@@ -3,22 +3,9 @@
 -- Ejecutar DESPUÉS de aplicar las migraciones EF
 -- ============================================================
 
--- Usuarios de prueba (passwords generados con BCrypt work factor 12)
--- admin@despensa.com   → password: Admin1234!
--- cajero@despensa.com  → password: Cajero1234!
-INSERT INTO usuarios (nombre, email, password_hash, rol, activo, created_at, updated_at)
-VALUES
-  ('Administrador', 'admin@despensa.com',
-   '$2a$12$KIXbhKH8v6zZbVJmJZjGpOzQoTXcJ1QG4YmX8L3aG2JK5pOvGJMHi',
-   'Admin', true, NOW(), NOW()),
-  ('Cajero Demo', 'cajero@despensa.com',
-   '$2a$12$2Q3k5L8mN7p9R1s4T6u8W.eA0bCdEfGhIjKlMnOpQrStUvWxYzAb',
-   'Cajero', true, NOW(), NOW())
-ON CONFLICT (email) DO NOTHING;
-
--- NOTA: Los hashes de arriba son de ejemplo.
--- Para generar hashes reales, usa el endpoint /Auth/GenerarHash?password=TuPassword
--- o ejecuta en C#: BCrypt.Net.BCrypt.HashPassword("TuPassword", 12)
+-- Los usuarios NO se crean acá: los crea la app al arrancar (Data/SeedData.cs), tomando las
+-- contraseñas de las variables de entorno ADMIN_PASSWORD y CAJERO_PASSWORD. Si no están
+-- definidas, genera una al azar y la escribe en el log del primer arranque.
 
 -- Configuraciones base
 INSERT INTO configuraciones (clave, valor, descripcion, updated_at)

@@ -71,4 +71,6 @@ public class Producto
     public ICollection<DetalleCompra> DetallesCompra { get; set; } = [];
     public ICollection<MovimientoStock> MovimientosStock { get; set; } = [];
     public ICollection<CodigoBarraAlternativo> CodigosAlternativos { get; set; } = [];
+
+    public ProductoImagen? Imagen { get; set; }
 }

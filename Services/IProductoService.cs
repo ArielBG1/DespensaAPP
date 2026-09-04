@@ -12,6 +12,7 @@ public interface IProductoService
     Task<(bool success, string? error)> CreateAsync(ProductoFormViewModel vm, int usuarioId);
     Task<(bool success, string? error)> UpdateAsync(ProductoFormViewModel vm, int usuarioId);
     Task<bool> DeleteLogicalAsync(int id);
+    Task<(byte[] datos, string contentType)?> GetImagenAsync(int productoId);
     Task<(bool success, string? error)> AjustarStockAsync(AjusteStockViewModel vm, int usuarioId);
     Task<MovimientoFiltroViewModel?> GetMovimientosAsync(int productoId, DateTime? desde, DateTime? hasta);
     Task<object> CheckCodigoBarraAsync(string codigo, int idActual);

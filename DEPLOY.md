@@ -57,6 +57,11 @@ La combinación gratuita que funciona es:
    | `ADMIN_PASSWORD`  | la contraseña que quieras para el admin    |
    | `CAJERO_PASSWORD` | la contraseña que quieras para el cajero   |
 
+   Las dos últimas son opcionales pero conviene ponerlas: si no están definidas, la app genera
+   una contraseña al azar en el primer arranque y la escribe en los logs de Render (pestaña
+   *Logs*, buscar "se generó una contraseña al azar"). No hay ninguna contraseña por defecto
+   escrita en el código.
+
 5. **Create Web Service**. El primer build tarda ~5 minutos.
 6. Queda publicada en `https://despensa-app.onrender.com` (ese link se les pasa a los amigos).
 
@@ -68,8 +73,8 @@ en el primer arranque.
 - `admin@despensa.com` → contraseña de `ADMIN_PASSWORD`
 - `cajero@despensa.com` → contraseña de `CAJERO_PASSWORD`
 
-Si no se definen esas variables, quedan las de siempre: `Admin1234!` y `Cajero1234!`.
-Al ser una URL pública, conviene definirlas.
+Se crean una sola vez, en el primer arranque con la base vacía. Para cambiarlas después hay que
+hacerlo desde la pantalla de Usuarios de la app: cambiar la variable de entorno ya no tiene efecto.
 
 ---
 
@@ -77,9 +82,9 @@ Al ser una URL pública, conviene definirlas.
 
 - **La app se duerme** tras 15 minutos sin visitas. La primera carga después de dormir tarda
   ~50 segundos. Avisarles a los que testeen para que no crean que está rota.
-- **Las imágenes de productos se pierden** en cada reinicio o deploy: Render Free no tiene disco
-  persistente y se guardan en `wwwroot/uploads`. Los datos en la base (productos, ventas, stock)
-  sí se conservan, están en Supabase.
+- **Las fotos de productos se guardan en la base** (tabla `producto_imagenes`), no en disco, así que
+  sobreviven a los reinicios y a los deploys. Ocupan lugar en los 500 MB de Supabase: con un
+  máximo de 5 MB por foto, conviene subir imágenes chicas.
 - **Supabase pausa el proyecto** tras 7 días sin uso; se reactiva con un click desde el dashboard.
 
 ## Actualizar la app
