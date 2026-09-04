@@ -1,0 +1,67 @@
+@model IEnumerable<DespensaApp.Models.ViewModels.ProveedorListItemVm>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Proveedores";
+    ViewData["ActiveMenu"] = "Proveedores";
+}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">Proveedores</h4>
+        <p class="text-muted mb-0 small">@Model.Count() proveedor(es)</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Nuevo proveedor
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th class="d-none d-md-table-cell">Contacto</th>
+                    <th class="d-none d-lg-table-cell">Teléfono</th>
+                    <th class="d-none d-lg-table-cell">Email</th>
+                    <th class="text-center">Compras</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr class="@(!p.Activo ? "opacity-60" : "")">
+                        <td class="fw-semibold">@p.Nombre</td>
+                        <td class="d-none d-md-table-cell text-muted small">@(p.Contacto ?? "—")</td>
+                        <td class="d-none d-lg-table-cell text-muted small">@(p.Telefono ?? "—")</td>
+                        <td class="d-none d-lg-table-cell text-muted small">@(p.Email ?? "—")</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary bg-opacity-15 text-secondary">@p.NumCompras</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@(p.Activo ? "success" : "secondary") bg-opacity-15 text-@(p.Activo ? "success" : "secondary")">
+                                @(p.Activo ? "Activo" : "Inactivo")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a asp-action="Edit" asp-route-id="@p.Id"
+                                   class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                <form asp-action="ToggleActivo" asp-route-id="@p.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn btn-sm @(p.Activo ? "btn-outline-warning" : "btn-outline-success")"
+                                            title="@(p.Activo ? "Desactivar" : "Activar")">
+                                        <i class="fas @(p.Activo ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

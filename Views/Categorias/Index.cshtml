@@ -1,0 +1,63 @@
+@model IEnumerable<DespensaApp.Models.ViewModels.CategoriaListItemVm>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Categorías";
+    ViewData["ActiveMenu"] = "Categorias";
+}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">Categorías</h4>
+        <p class="text-muted mb-0 small">@Model.Count() categoría(s)</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>Nueva categoría
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th class="d-none d-md-table-cell">Descripción</th>
+                    <th class="text-center">Productos activos</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr class="@(!c.Activo ? "opacity-60" : "")">
+                        <td class="fw-semibold">@c.Nombre</td>
+                        <td class="d-none d-md-table-cell text-muted small">@(c.Descripcion ?? "—")</td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary bg-opacity-15 text-secondary">@c.NumProductos</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@(c.Activo ? "success" : "secondary") bg-opacity-15 text-@(c.Activo ? "success" : "secondary")">
+                                @(c.Activo ? "Activa" : "Inactiva")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a asp-action="Edit" asp-route-id="@c.Id"
+                                   class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+                                <form asp-action="ToggleActivo" asp-route-id="@c.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit"
+                                            class="btn btn-sm @(c.Activo ? "btn-outline-warning" : "btn-outline-success")"
+                                            title="@(c.Activo ? "Desactivar" : "Activar")">
+                                        <i class="fas @(c.Activo ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

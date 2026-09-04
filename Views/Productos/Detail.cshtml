@@ -1,0 +1,222 @@
+@model DespensaApp.Models.Entities.Producto
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = Model.Nombre;
+    ViewData["ActiveMenu"] = "Productos";
+
+    string unidad = Model.TipoVenta switch
+    {
+        TipoVenta.Unidad => "u",
+        TipoVenta.Kg => "kg",
+        TipoVenta.Gramo => "g",
+        TipoVenta.Cien_g => "×100g",
+        _ => ""
+    };
+
+    string stockClase;
+    string stockTexto;
+    if (Model.StockActual <= 0) { stockClase = "danger"; stockTexto = "Sin stock"; }
+    else if (Model.StockMinimo <= 0) { stockClase = "success"; stockTexto = "OK"; }
+    else if (Model.StockActual <= Model.StockMinimo) { stockClase = "danger"; stockTexto = "Bajo mínimo"; }
+    else if (Model.StockActual <= Model.StockMinimo * 1.5m) { stockClase = "warning"; stockTexto = "Por agotar"; }
+    else { stockClase = "success"; stockTexto = "OK"; }
+
+    decimal margen = Model.PrecioCompra > 0
+        ? Math.Round((Model.PrecioVenta - Model.PrecioCompra) / Model.PrecioCompra * 100, 1)
+        : 0;
+}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">@Model.Nombre</h4>
+        @if (!string.IsNullOrEmpty(Model.CodigoBarra))
+        {
+            <p class="text-muted mb-0 small">
+                <i class="fas fa-barcode me-1"></i>@Model.CodigoBarra
+            </p>
+        }
+    </div>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary btn-sm">
+            <i class="fas fa-pen me-1"></i>Editar
+        </a>
+    }
+    <a asp-action="Movimientos" asp-route-id="@Model.Id" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-history me-1"></i>Movimientos
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Imagen + estado -->
+    <div class="col-12 col-md-4 col-xl-3">
+        <div class="card border-0 shadow-sm text-center" style="border-radius:12px;">
+            <div class="card-body p-3">
+                @if (!string.IsNullOrEmpty(Model.ImagenUrl))
+                {
+                    <img src="@Model.ImagenUrl" alt="@Model.Nombre"
+                         class="rounded-3 mb-3"
+                         style="width:100%;max-height:220px;object-fit:contain;" />
+                }
+                else
+                {
+                    <div class="rounded-3 mb-3 d-flex align-items-center justify-content-center"
+                         style="height:160px;background:#f1f5f9;">
+                        <i class="fas fa-box fa-4x text-muted opacity-25"></i>
+                    </div>
+                }
+
+                @if (Model.Activo)
+                {
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        <i class="fas fa-check me-1"></i>Activo
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                        <i class="fas fa-ban me-1"></i>Inactivo
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="col-12 col-md-8 col-xl-9">
+        <div class="row g-3">
+            <!-- Stock card -->
+            <div class="col-12">
+                <div class="card border-0 shadow-sm" style="border-radius:12px;border-left:4px solid var(--bs-@stockClase) !important;">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-6 col-md-3 text-center">
+                                <div class="text-muted small mb-1">Stock actual</div>
+                                <div class="fs-3 fw-bold text-@stockClase">
+                                    @Model.StockActual.ToString("G29")
+                                    <small class="fs-6">@unidad</small>
+                                </div>
+                                <span class="badge bg-@stockClase bg-opacity-15 text-@stockClase">
+                                    @stockTexto
+                                </span>
+                            </div>
+                            <div class="col-6 col-md-3 text-center border-start">
+                                <div class="text-muted small mb-1">Stock mínimo</div>
+                                <div class="fs-3 fw-bold">
+                                    @Model.StockMinimo.ToString("G29")
+                                    <small class="fs-6">@unidad</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3 text-center border-start">
+                                <div class="text-muted small mb-1">Precio venta</div>
+                                <div class="fs-3 fw-bold text-success">Gs. @Model.PrecioVenta.ToString("N0")</div>
+                            </div>
+                            <div class="col-6 col-md-3 text-center border-start">
+                                <div class="text-muted small mb-1">Precio compra / Margen</div>
+                                <div class="fw-semibold">Gs. @Model.PrecioCompra.ToString("N0")</div>
+                                <span class="badge @(margen >= 0 ? "bg-success" : "bg-danger") bg-opacity-15 @(margen >= 0 ? "text-success" : "text-danger")">
+                                    @margen%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos del producto -->
+            <div class="col-12 col-lg-6">
+                <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2 text-primary"></i>Datos del Producto</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between py-2">
+                                <span class="text-muted small">Categoría</span>
+                                <span class="fw-semibold">@(Model.Categoria?.Nombre ?? "—")</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between py-2">
+                                <span class="text-muted small">Proveedor</span>
+                                <span class="fw-semibold">@(Model.Proveedor?.Nombre ?? "—")</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between py-2">
+                                <span class="text-muted small">Tipo de venta</span>
+                                <span class="fw-semibold">
+                                    @(Model.TipoVenta switch {
+                                        TipoVenta.Unidad => "Por unidad",
+                                        TipoVenta.Kg => "Por kilogramo",
+                                        TipoVenta.Gramo => "Por gramo",
+                                        TipoVenta.Cien_g => "Por 100g",
+                                        _ => Model.TipoVenta.ToString()
+                                    })
+                                </span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between py-2">
+                                <span class="text-muted small">Creado</span>
+                                <span class="small">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between py-2">
+                                <span class="text-muted small">Última actualización</span>
+                                <span class="small">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="col-12 col-lg-6">
+                <div class="card border-0 shadow-sm h-100" style="border-radius:12px;">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h6 class="mb-0 fw-bold"><i class="fas fa-align-left me-2 text-primary"></i>Descripción</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(Model.Descripcion))
+                        {
+                            <p class="mb-0 text-muted">@Model.Descripcion</p>
+                        }
+                        else
+                        {
+                            <p class="mb-0 text-muted fst-italic">Sin descripción.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ajuste stock desde detalle -->
+@if (User.IsInRole("Admin"))
+{
+    <div class="mt-4 text-end">
+        <button type="button" class="btn btn-warning"
+                onclick="abrirAjuste()">
+            <i class="fas fa-sliders-h me-2"></i>Ajustar Stock
+        </button>
+    </div>
+
+    <partial name="_ModalAjusteStock" />
+}
+
+@section Scripts {
+@if (User.IsInRole("Admin"))
+{
+    <script>
+    function abrirAjuste() {
+        document.getElementById('ajusteProductoId').value = @Model.Id;
+        document.getElementById('ajusteNombreProducto').textContent = '@Html.Raw(Model.Nombre.Replace("'","&#39;"))';
+        document.getElementById('ajusteStockActual').textContent = '@Model.StockActual.ToString("G29") @unidad';
+        document.getElementById('ajusteUnidadLabel').textContent = '@unidad' ? '(@unidad)' : '';
+        document.getElementById('ajusteCantidad').value='';
+        document.getElementById('ajusteMotivo').value='';
+        document.querySelectorAll('input[name="Tipo"]').forEach(r=>r.checked=false);
+        new bootstrap.Modal(document.getElementById('modalAjusteStock')).show();
+        setTimeout(()=>document.getElementById('ajusteCantidad').focus(),400);
+    }
+    </script>
+}
+}

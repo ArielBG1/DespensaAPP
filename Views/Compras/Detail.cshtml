@@ -1,0 +1,122 @@
+@model DespensaApp.Models.ViewModels.CompraDetalleViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Compra #{Model.Compra.NumeroRemito ?? Model.Compra.Id.ToString()}";
+    ViewData["ActiveMenu"] = "Compras";
+    var c = Model.Compra;
+    var m = Model.MonedaSimbolo;
+}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left"></i></a>
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">
+            Compra @(string.IsNullOrEmpty(c.NumeroRemito) ? $"#{c.Id}" : $"#{c.NumeroRemito}")
+        </h4>
+        <p class="text-muted mb-0 small">
+            @c.FechaCompra.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @c.Usuario?.Nombre
+        </p>
+    </div>
+    @if (c.Estado != DespensaApp.Models.Entities.EstadoCompra.Anulada)
+    {
+        <form asp-action="Anular" asp-route-id="@c.Id" method="post"
+              onsubmit="return confirm('¿Anular esta compra? El stock será descontado.')">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="fas fa-ban me-1"></i>Anular compra
+            </button>
+        </form>
+    }
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger py-2 mb-3">@TempData["Error"]</div>
+}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm mb-3" style="border-radius:12px;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2 text-primary"></i>Datos de la Compra</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Estado</span>
+                        <span class="badge bg-@(c.Estado == DespensaApp.Models.Entities.EstadoCompra.Recibida ? "success" : c.Estado == DespensaApp.Models.Entities.EstadoCompra.Anulada ? "danger" : "warning") bg-opacity-15 text-@(c.Estado == DespensaApp.Models.Entities.EstadoCompra.Recibida ? "success" : c.Estado == DespensaApp.Models.Entities.EstadoCompra.Anulada ? "danger" : "warning")">
+                            @c.Estado
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Proveedor</span>
+                        <span class="fw-semibold">@(c.Proveedor?.Nombre ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Responsable</span>
+                        <span>@(c.Usuario?.Nombre ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">N° Remito</span>
+                        <span>@(c.NumeroRemito ?? "—")</span>
+                    </li>
+                    @if (!string.IsNullOrEmpty(c.Observacion))
+                    {
+                        <li class="list-group-item py-2">
+                            <div class="text-muted small mb-1">Observación</div>
+                            <div>@c.Observacion</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold fs-5">TOTAL</span>
+                    <span class="fw-black fs-3 text-success">@m @c.Total.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-list me-2 text-primary"></i>Detalle (@c.Detalles.Count item(s))
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-end">P. Unitario</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var det in c.Detalles)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold small">@det.Producto?.Nombre</div>
+                                    @if (!string.IsNullOrEmpty(det.Producto?.CodigoBarra))
+                                    {
+                                        <div class="text-muted" style="font-size:.73rem">@det.Producto.CodigoBarra</div>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold">
+                                    @(det.Cantidad % 1 == 0 ? ((int)det.Cantidad).ToString() : det.Cantidad.ToString("F3"))
+                                </td>
+                                <td class="text-end">@m @det.PrecioUnitario.ToString("N0")</td>
+                                <td class="text-end fw-bold">@m @det.Subtotal.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

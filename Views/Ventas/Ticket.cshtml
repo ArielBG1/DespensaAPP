@@ -1,0 +1,113 @@
+@model DespensaApp.Models.ViewModels.VentaDetalleViewModel
+@{
+    Layout = "_TicketLayout";
+    ViewData["Title"] = $"Ticket {Model.Venta.NumeroTicket}";
+    var m = Model.MonedaSimbolo;
+    var v = Model.Venta;
+}
+
+<div class="ticket-wrapper">
+    <!-- Botones solo en pantalla -->
+    <div class="btn-print no-print d-flex gap-2 mb-3">
+        <button onclick="window.print()"
+                style="flex:1;padding:.6rem;background:#1e293b;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+            🖨️ Imprimir
+        </button>
+        <a href="/Ventas/Index"
+           style="flex:1;padding:.6rem;background:#f1f5f9;color:#1e293b;border:none;border-radius:8px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;">
+            ← Volver
+        </a>
+    </div>
+
+    <!-- TICKET -->
+    <div class="tk">
+        <div class="tk-center tk-bold" style="font-size:14px;">@Model.NombreNegocio</div>
+        @if (!string.IsNullOrEmpty(Model.Direccion))
+        {
+            <div class="tk-center tk-small">@Model.Direccion</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Telefono))
+        {
+            <div class="tk-center tk-small">Tel: @Model.Telefono</div>
+        }
+
+        <div class="tk-sep"></div>
+
+        <div>Ticket: <strong>@v.NumeroTicket</strong></div>
+        <div>Fecha:  @v.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</div>
+        <div>Cajero: @(v.Usuario?.Nombre ?? "—")</div>
+
+        <div class="tk-sep"></div>
+
+        @foreach (var item in v.Detalles)
+        {
+            var cantStr = item.EsPorPeso
+                ? item.Cantidad.ToString("F3")
+                : (item.Cantidad % 1 == 0 ? ((int)item.Cantidad).ToString() : item.Cantidad.ToString("F3"));
+
+            var precioStr = m + " " + item.PrecioUnitario.ToString("N0");
+            var subStr = m + " " + item.Subtotal.ToString("N0");
+            <div>@cantStr x @item.NombreProducto</div>
+            <div class="tk-row tk-small" style="padding-left:.5rem">
+                <span>@precioStr c/u</span>
+                <span class="tk-bold">@subStr</span>
+            </div>
+        }
+
+        <div class="tk-sep"></div>
+
+        <div class="tk-row">
+            <span>Subtotal</span>
+            <span>@m @v.Subtotal.ToString("N0")</span>
+        </div>
+
+        @if (v.Descuento > 0)
+        {
+            <div class="tk-row" style="color:#dc2626;">
+                <span>Descuento</span>
+                <span>-@m @v.Descuento.ToString("N0")</span>
+            </div>
+        }
+
+        <div class="tk-sep-d"></div>
+
+        <div class="tk-row tk-total">
+            <span>TOTAL</span>
+            <span>@m @v.Total.ToString("N0")</span>
+        </div>
+
+        <div class="tk-sep"></div>
+
+        <div class="tk-row tk-small">
+            <span>Forma de pago</span>
+            <span>@(v.MetodoPago switch {
+                MetodoPago.Efectivo => "Efectivo",
+                MetodoPago.Tarjeta => "Tarjeta",
+                MetodoPago.Transferencia => "Transferencia",
+                MetodoPago.QR => "QR",
+                _ => v.MetodoPago.ToString()
+            })</span>
+        </div>
+
+        @if (v.MetodoPago == MetodoPago.Efectivo)
+        {
+            <div class="tk-row tk-small">
+                <span>Recibido</span>
+                <span>@m @v.MontoRecibido.ToString("N0")</span>
+            </div>
+            <div class="tk-row tk-small tk-bold">
+                <span>Vuelto</span>
+                <span>@m @v.Vuelto.ToString("N0")</span>
+            </div>
+        }
+
+        <div class="tk-sep"></div>
+
+        <div class="tk-center tk-small" style="margin-top:.4rem;">
+            ¡Gracias por su compra!
+        </div>
+        <div class="tk-center tk-small" style="opacity:.5;font-size:9px;margin-top:.3rem;">
+            @Model.NombreNegocio · @DateTime.Now.Year
+        </div>
+    </div>
+</div>

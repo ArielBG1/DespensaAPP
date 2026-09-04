@@ -1,0 +1,44 @@
+html { font-size: 14px; }
+
+@media (min-width: 768px) {
+    html { font-size: 16px; }
+}
+
+body { margin: 0; }
+
+.btn:focus, .btn:active:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #3b82f6;
+}
+
+/* Scrollbar personalizado en el sidebar */
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+/* Utilities */
+.ls-1 { letter-spacing: .05em; }
+
+/* Tables */
+.table-hover tbody tr:hover { background-color: #f0f9ff; }
+
+/* Badges */
+.badge-admin { background: #fef3c7; color: #92400e; }
+.badge-cajero { background: #e0f2fe; color: #0369a1; }
+
+/* Alerts en toasts */
+.toast-container { z-index: 9999; }
+
+/* Form controls */
+.form-control, .form-select {
+    border-color: #e2e8f0;
+    border-radius: 8px;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* Cards */
+.card { border-radius: 12px !important; }
+
+/* Buttons */
+.btn { border-radius: 8px; }

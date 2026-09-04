@@ -1,0 +1,94 @@
+<div class="modal fade" id="modalAjusteStock" tabindex="-1" aria-labelledby="modalAjusteStockLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-controller="Productos" asp-action="AjustarStock" method="post" id="formAjusteStock">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ProductoId" id="ajusteProductoId" />
+
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalAjusteStockLabel">
+                        <i class="fas fa-sliders-h me-2 text-primary"></i>Ajustar Stock
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Info del producto -->
+                    <div class="rounded-3 p-3 mb-4 border" style="background:#f0f9ff;">
+                        <div class="fw-semibold text-primary mb-1" id="ajusteNombreProducto">—</div>
+                        <div class="d-flex gap-3 small text-muted">
+                            <span>Stock actual:
+                                <strong class="text-dark" id="ajusteStockActual">—</strong>
+                            </span>
+                            <span id="ajusteCodigoBarra" class="d-none">
+                                Código: <strong id="ajusteCodigo">—</strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tipo de movimiento -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tipo de movimiento</label>
+                        <div class="d-grid gap-2">
+                            <div class="row g-2" id="tipoMovRadios">
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="Tipo"
+                                           id="tipoEntrada" value="Entrada" required>
+                                    <label class="btn btn-outline-success w-100 py-2" for="tipoEntrada">
+                                        <i class="fas fa-arrow-circle-down me-1"></i>Entrada
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="Tipo"
+                                           id="tipoSalida" value="Salida">
+                                    <label class="btn btn-outline-danger w-100 py-2" for="tipoSalida">
+                                        <i class="fas fa-arrow-circle-up me-1"></i>Salida
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="Tipo"
+                                           id="tipoAjustePos" value="AjustePositivo">
+                                    <label class="btn btn-outline-info w-100 py-2" for="tipoAjustePos">
+                                        <i class="fas fa-plus-circle me-1"></i>Ajuste +
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="Tipo"
+                                           id="tipoAjusteNeg" value="AjusteNegativo">
+                                    <label class="btn btn-outline-warning w-100 py-2" for="tipoAjusteNeg">
+                                        <i class="fas fa-minus-circle me-1"></i>Ajuste −
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cantidad -->
+                    <div class="mb-3">
+                        <label for="ajusteCantidad" class="form-label fw-semibold">
+                            Cantidad <small class="text-muted fw-normal" id="ajusteUnidadLabel"></small>
+                        </label>
+                        <input type="number" name="Cantidad" id="ajusteCantidad"
+                               class="form-control form-control-lg text-center fw-bold"
+                               min="0.001" step="0.001" placeholder="0" required>
+                    </div>
+
+                    <!-- Motivo -->
+                    <div class="mb-1">
+                        <label for="ajusteMotivo" class="form-label fw-semibold">Motivo / Observación</label>
+                        <input type="text" name="Motivo" id="ajusteMotivo"
+                               class="form-control" maxlength="300"
+                               placeholder="ej: Recepción de mercadería, conteo físico..." required>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fas fa-check me-2"></i>Confirmar Ajuste
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

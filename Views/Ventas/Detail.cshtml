@@ -1,0 +1,161 @@
+@model DespensaApp.Models.ViewModels.VentaDetalleViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Venta {Model.Venta.NumeroTicket}";
+    ViewData["ActiveMenu"] = "Ventas";
+    var v = Model.Venta;
+    var m = Model.MonedaSimbolo;
+}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">@v.NumeroTicket</h4>
+        <p class="text-muted mb-0 small">
+            @v.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+            · @v.Usuario?.Nombre
+        </p>
+    </div>
+    <a asp-action="Ticket" asp-route-id="@v.Id"
+       target="_blank" class="btn btn-outline-secondary">
+        <i class="fas fa-print me-1"></i>Imprimir
+    </a>
+    @if (User.IsInRole("Admin") && v.Estado != EstadoVenta.Anulada)
+    {
+        <form asp-action="Anular" asp-route-id="@v.Id" method="post"
+              onsubmit="return confirm('¿Anular esta venta? El stock será restituido.')">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="fas fa-ban me-1"></i>Anular venta
+            </button>
+        </form>
+    }
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger py-2 mb-3">@TempData["Error"]</div>
+}
+
+<div class="row g-4">
+    <!-- Info y estado -->
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm mb-3" style="border-radius:12px;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2 text-primary"></i>Datos de la Venta</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Estado</span>
+                        <span class="badge bg-@(v.Estado switch { EstadoVenta.Completada => "success", EstadoVenta.Anulada => "danger", _ => "warning" }) bg-opacity-15 text-@(v.Estado switch { EstadoVenta.Completada => "success", EstadoVenta.Anulada => "danger", _ => "warning" })">
+                            @v.Estado
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Cajero</span>
+                        <span class="fw-semibold">@(v.Usuario?.Nombre ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between py-2">
+                        <span class="text-muted small">Método de pago</span>
+                        <span class="fw-semibold">
+                            <i class="fas @(v.MetodoPago switch { MetodoPago.Efectivo => "fa-money-bill-wave", MetodoPago.Tarjeta => "fa-credit-card", MetodoPago.Transferencia => "fa-exchange-alt", MetodoPago.QR => "fa-qrcode", _ => "fa-question" }) me-1"></i>
+                            @v.MetodoPago
+                        </span>
+                    </li>
+                    @if (v.MetodoPago == MetodoPago.Efectivo)
+                    {
+                        <li class="list-group-item d-flex justify-content-between py-2">
+                            <span class="text-muted small">Recibido</span>
+                            <span>@m @v.MontoRecibido.ToString("N0")</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between py-2">
+                            <span class="text-muted small">Vuelto</span>
+                            <span class="fw-bold">@m @v.Vuelto.ToString("N0")</span>
+                        </li>
+                    }
+                    @if (!string.IsNullOrEmpty(v.Observacion))
+                    {
+                        <li class="list-group-item py-2">
+                            <div class="text-muted small mb-1">Observación</div>
+                            <div>@v.Observacion</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <!-- Totales -->
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-1 text-muted small">
+                    <span>Subtotal</span>
+                    <span>@m @v.Subtotal.ToString("N0")</span>
+                </div>
+                @if (v.Descuento > 0)
+                {
+                    <div class="d-flex justify-content-between mb-1 text-danger small">
+                        <span>Descuento</span>
+                        <span>-@m @v.Descuento.ToString("N0")</span>
+                    </div>
+                }
+                <hr class="my-2" />
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold fs-5">TOTAL</span>
+                    <span class="fw-black fs-3 text-success">@m @v.Total.ToString("N0")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalle items -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm" style="border-radius:12px;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-list me-2 text-primary"></i>
+                    Detalle (@v.Detalles.Count item(s))
+                </h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Cant.</th>
+                            <th class="text-end">P. Unit.</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var det in v.Detalles)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold" style="font-size:.9rem">@det.NombreProducto</div>
+                                    @if (!string.IsNullOrEmpty(det.CodigoBarra))
+                                    {
+                                        <div class="text-muted" style="font-size:.73rem">
+                                            <i class="fas fa-barcode me-1"></i>@det.CodigoBarra
+                                        </div>
+                                    }
+                                    @if (det.EsPorPeso)
+                                    {
+                                        <span class="badge bg-info bg-opacity-15 text-info" style="font-size:.65rem">por peso</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold">
+                                    @(det.EsPorPeso ? det.Cantidad.ToString("F3") : (det.Cantidad % 1 == 0 ? ((int)det.Cantidad).ToString() : det.Cantidad.ToString("F3")))
+                                </td>
+                                <td class="text-end">@m @det.PrecioUnitario.ToString("N0")</td>
+                                <td class="text-end fw-bold">@m @det.Subtotal.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

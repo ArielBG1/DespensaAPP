@@ -1,0 +1,101 @@
+@model DespensaApp.Models.ViewModels.ConfiguracionViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Configuración";
+    ViewData["ActiveMenu"] = "Configuracion";
+}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <div>
+        <h4 class="mb-0 fw-bold">Configuración del Sistema</h4>
+        <p class="text-muted mb-0 small">Parámetros generales del negocio</p>
+    </div>
+</div>
+
+<form asp-action="Index" method="post">
+    @Html.AntiForgeryToken()
+    <div class="row g-4">
+        <!-- Datos del negocio -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-store me-2 text-primary"></i>Datos del negocio</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Nombre del negocio</label>
+                        <input asp-for="NombreNegocio" class="form-control" placeholder="Mi Despensa" />
+                        <span asp-validation-for="NombreNegocio" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Dirección</label>
+                        <input asp-for="Direccion" class="form-control" placeholder="Calle 123, Ciudad" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Teléfono</label>
+                        <input asp-for="Telefono" class="form-control" placeholder="+54 11 1234-5678" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Texto pie de ticket</label>
+                        <input asp-for="PieTicket" class="form-control" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuración financiera y de sesión -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-coins me-2 text-success"></i>Moneda e impuestos</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label fw-semibold small">Símbolo</label>
+                            <input asp-for="MonedaSimbolo" class="form-control" placeholder="Gs." maxlength="5" />
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label fw-semibold small">Nombre de la moneda</label>
+                            <input asp-for="MonedaNombre" class="form-control" placeholder="Guaraní" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">IVA (%)</label>
+                            <div class="input-group">
+                                <input asp-for="IVAPorcentaje" type="number" class="form-control" min="0" max="100" step="0.01" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Alerta stock mínimo</label>
+                            <input asp-for="StockMinimoAlerta" type="number" class="form-control" min="0" step="1" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-clock me-2 text-info"></i>Sesión</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small">Duración de sesión (minutos)</label>
+                        <div class="input-group">
+                            <input asp-for="SesionMinutos" type="number" class="form-control" min="5" max="10080" />
+                            <span class="input-group-text">min</span>
+                        </div>
+                        <div class="form-text">480 = 8 horas. Máximo 10080 (7 días).</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-4">
+            <i class="fas fa-save me-2"></i>Guardar configuración
+        </button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Descartar</a>
+    </div>
+</form>

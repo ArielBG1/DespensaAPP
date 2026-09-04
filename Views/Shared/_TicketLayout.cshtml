@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        /* ── Pantalla ─────────────────────────────────── */
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            margin: 0;
+        }
+
+        .ticket-wrapper {
+            background: #fff;
+            width: 300px;
+            padding: 1.2rem 1rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,.12);
+            border-radius: 4px;
+        }
+
+        .btn-print {
+            margin: 1.5rem auto 0;
+            display: flex;
+            gap: .75rem;
+        }
+
+        /* ── Ticket interno ───────────────────────────── */
+        .tk { font-size: 12px; line-height: 1.5; color: #111; }
+        .tk-center { text-align: center; }
+        .tk-bold   { font-weight: 700; }
+        .tk-large  { font-size: 15px; font-weight: 700; }
+        .tk-small  { font-size: 10px; }
+        .tk-sep    { border-top: 1px dashed #999; margin: .4rem 0; }
+        .tk-sep-d  { border-top: 2px solid #111; margin: .4rem 0; }
+        .tk-row    { display: flex; justify-content: space-between; }
+        .tk-total  { font-size: 15px; font-weight: 900; }
+
+        /* ── Impresión ────────────────────────────────── */
+        @@media print {
+            body { background: #fff; padding: 0; }
+            .ticket-wrapper { box-shadow: none; width: 72mm; padding: .5rem; border-radius: 0; }
+            .no-print { display: none !important; }
+            @@page { margin: 4mm; size: 80mm auto; }
+        }
+    </style>
+</head>
+<body>
+    @RenderBody()
+    <script>
+    // Auto-print si viene de venta exitosa
+    if (new URLSearchParams(location.search).get('autoprint') === '1') {
+        window.addEventListener('load', () => setTimeout(() => window.print(), 400));
+    }
+    </script>
+</body>
+</html>

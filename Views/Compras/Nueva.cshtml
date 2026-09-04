@@ -1,0 +1,115 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Nueva Compra";
+    ViewData["ActiveMenu"] = "Compras";
+    var moneda = ViewData["MonedaSimbolo"]?.ToString() ?? "Gs.";
+    var proveedores = ViewData["Proveedores"] as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? [];
+}
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+<meta name="xsrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+
+<style>
+.comp-wrap { display: flex; height: calc(100vh - 56px); overflow: hidden; margin: -1.5rem; }
+.comp-left  { flex: 0 0 60%; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+.comp-right { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+.comp-header { padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #fff; }
+.comp-table-wrap { flex: 1; overflow-y: auto; }
+.comp-footer { padding: .75rem 1rem; border-top: 2px solid #e2e8f0; background: #f8fafc; }
+@@media(max-width:768px) { .comp-wrap { flex-direction: column; height: auto; } .comp-left,.comp-right { flex: none; width: 100%; } }
+</style>
+
+<div class="comp-wrap">
+    <!-- IZQUIERDA: Lista de productos -->
+    <div class="comp-left">
+        <div class="comp-header">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-5">
+                    <label class="form-label fw-semibold small mb-1">Proveedor <span class="text-danger">*</span></label>
+                    <select id="selectProveedor" class="form-select form-select-sm">
+                        <option value="">— Seleccionar —</option>
+                        @foreach (var p in proveedores)
+                        {
+                            <option value="@p.Value">@p.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label fw-semibold small mb-1">N° Remito</label>
+                    <input type="text" id="inputRemito" class="form-control form-control-sm" placeholder="Ej: R-001" />
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label fw-semibold small mb-1">Observación</label>
+                    <input type="text" id="inputObservacion" class="form-control form-control-sm" />
+                </div>
+            </div>
+        </div>
+
+        <div class="comp-table-wrap">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">P. Compra</th>
+                        <th class="text-end">Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="listaBody">
+                    <tr id="emptyRow">
+                        <td colspan="5" class="text-center text-muted py-5">
+                            <i class="fas fa-barcode fa-2x mb-2 d-block opacity-25"></i>
+                            Escanee o busque productos para agregar
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="comp-footer">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small" id="spanItems">0 item(s)</span>
+                <div>
+                    <span class="fw-bold fs-5 me-2">TOTAL</span>
+                    <span class="fw-black fs-3 text-success" id="spanTotal">@moneda 0</span>
+                </div>
+            </div>
+            <button class="btn btn-success w-100 py-2 fw-bold" id="btnConfirmar" disabled
+                    onclick="confirmarCompra()">
+                <i class="fas fa-check me-1"></i>Confirmar Compra
+            </button>
+        </div>
+    </div>
+
+    <!-- DERECHA: Búsqueda -->
+    <div class="comp-right p-3">
+        <div class="mb-3">
+            <label class="form-label fw-semibold small">Código de barras</label>
+            <input type="text" id="codigoBarraInput" class="form-control form-control-lg"
+                   placeholder="Escanee o ingrese código..." autocomplete="off" />
+        </div>
+        <div class="mb-3 position-relative">
+            <label class="form-label fw-semibold small">Buscar por nombre</label>
+            <input type="text" id="busquedaInput" class="form-control"
+                   placeholder="Escriba al menos 2 letras..." autocomplete="off" />
+            <div id="busquedaDropdown"
+                 class="dropdown-menu w-100 shadow-sm p-0"
+                 style="display:none;max-height:280px;overflow-y:auto;"></div>
+        </div>
+        <div class="alert alert-info py-2 small">
+            <i class="fas fa-info-circle me-1"></i>
+            El precio de compra es editable en la tabla. Haga clic en la cantidad para modificarla.
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:1100;"></div>
+
+@section Scripts {
+<script>
+    window.MONEDA = '@Html.Raw(moneda)';
+</script>
+<script src="~/js/barcode-reader.js" asp-append-version="true"></script>
+<script src="~/js/compras.js" asp-append-version="true"></script>
+}

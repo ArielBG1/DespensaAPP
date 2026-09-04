@@ -1,0 +1,167 @@
+@model DespensaApp.Models.ViewModels.CompraIndexViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Historial de Compras";
+    ViewData["ActiveMenu"] = "Compras";
+    var f = Model.Filtro;
+    string PagUrl(int p) => $"?pagina={p}&fechaDesde={f.FechaDesde:yyyy-MM-dd}&fechaHasta={f.FechaHasta:yyyy-MM-dd}&proveedorId={f.ProveedorId}";
+}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">Compras / Ingresos</h4>
+        <p class="text-muted mb-0 small">@Model.TotalItems compra(s)</p>
+    </div>
+    <a asp-action="Nueva" class="btn btn-success">
+        <i class="fas fa-plus me-1"></i>Nueva Compra
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-box bg-success bg-opacity-10">
+                    <i class="fas fa-truck text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Compras</div>
+                    <div class="fs-4 fw-bold">@Model.TotalItems</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-box bg-primary bg-opacity-10">
+                    <i class="fas fa-dollar-sign text-primary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total período</div>
+                    <div class="fs-4 fw-bold">@Model.MonedaSimbolo @Model.TotalPeriodo.ToString("N0")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold small">Desde</label>
+                <input type="date" name="fechaDesde" class="form-select"
+                       value="@f.FechaDesde?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold small">Hasta</label>
+                <input type="date" name="fechaHasta" class="form-select"
+                       value="@f.FechaHasta?.ToString("yyyy-MM-dd")" />
+            </div>
+            @if (Model.Proveedores.Any())
+            {
+                <div class="col-6 col-md-3">
+                    <label class="form-label fw-semibold small">Proveedor</label>
+                    <select name="proveedorId" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach (var p in Model.Proveedores)
+                        {
+                            <option value="@p.Value" selected="@(f.ProveedorId?.ToString() == p.Value)">@p.Text</option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-6 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1"><i class="fas fa-filter"></i></button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Limpiar"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="card-body p-0">
+        @if (!Model.Compras.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-truck fa-3x mb-3 opacity-25 d-block"></i>
+                <p class="mb-0">No hay compras en el período seleccionado.</p>
+                <a asp-action="Nueva" class="btn btn-outline-success mt-3">
+                    <i class="fas fa-plus me-1"></i>Nueva compra
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Proveedor</th>
+                            <th class="d-none d-md-table-cell">N° Remito</th>
+                            <th class="text-center d-none d-sm-table-cell">Items</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.Compras)
+                        {
+                            <tr class="@(c.Estado == DespensaApp.Models.Entities.EstadoCompra.Anulada ? "table-danger bg-opacity-50" : "")">
+                                <td>
+                                    <div class="small fw-semibold">@c.FechaCompra.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted" style="font-size:.75rem">@c.FechaCompra.ToLocalTime().ToString("HH:mm")</div>
+                                </td>
+                                <td class="fw-semibold small">@c.Proveedor</td>
+                                <td class="d-none d-md-table-cell text-muted small">@(c.NumeroRemito ?? "—")</td>
+                                <td class="text-center d-none d-sm-table-cell">
+                                    <span class="badge bg-secondary bg-opacity-15 text-secondary">@c.CantidadItems</span>
+                                </td>
+                                <td class="text-end fw-bold">@Model.MonedaSimbolo @c.Total.ToString("N0")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-@(c.Estado == DespensaApp.Models.Entities.EstadoCompra.Recibida ? "success" : c.Estado == DespensaApp.Models.Entities.EstadoCompra.Anulada ? "danger" : "warning") bg-opacity-15 text-@(c.Estado == DespensaApp.Models.Entities.EstadoCompra.Recibida ? "success" : c.Estado == DespensaApp.Models.Entities.EstadoCompra.Anulada ? "danger" : "warning")">
+                                        @c.Estado
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="Detail" asp-route-id="@c.Id"
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.TotalPaginas > 1)
+            {
+                <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                    <small class="text-muted">Pág. @f.Pagina / @Model.TotalPaginas · @Model.TotalItems compras</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(f.Pagina <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@PagUrl(f.Pagina - 1)"><i class="fas fa-chevron-left"></i></a>
+                            </li>
+                            @for (int i = Math.Max(1, f.Pagina - 2); i <= Math.Min(Model.TotalPaginas, f.Pagina + 2); i++)
+                            {
+                                <li class="page-item @(i == f.Pagina ? "active" : "")">
+                                    <a class="page-link" href="@PagUrl(i)">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(f.Pagina >= Model.TotalPaginas ? "disabled" : "")">
+                                <a class="page-link" href="@PagUrl(f.Pagina + 1)"><i class="fas fa-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>

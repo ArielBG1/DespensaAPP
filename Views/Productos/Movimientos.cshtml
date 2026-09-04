@@ -1,0 +1,141 @@
+@model DespensaApp.Models.ViewModels.MovimientoFiltroViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = $"Movimientos — {Model.NombreProducto}";
+    ViewData["ActiveMenu"] = "Productos";
+}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">Historial de Stock</h4>
+        <p class="text-muted mb-0 small">
+            @Model.NombreProducto
+            @if (!string.IsNullOrEmpty(Model.CodigoBarra))
+            {
+                <span class="ms-2"><i class="fas fa-barcode me-1"></i>@Model.CodigoBarra</span>
+            }
+        </p>
+    </div>
+    <a asp-action="Detail" asp-route-id="@Model.ProductoId" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-box me-1"></i>Ver producto
+    </a>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ProductoId" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-pen me-1"></i>Editar
+        </a>
+    }
+</div>
+
+<!-- STOCK ACTUAL -->
+<div class="alert @(Model.StockActual <= 0 ? "alert-danger" : "alert-info") py-2 mb-4">
+    <i class="fas fa-warehouse me-2"></i>
+    Stock actual:
+    <strong>@Model.StockActual.ToString("G29") @Model.UnidadStock</strong>
+    · @Model.TotalMovimientos movimiento(s) en total
+</div>
+
+<!-- FILTRO POR FECHAS -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="id" value="@Model.ProductoId" />
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold small">Desde</label>
+                <input type="date" name="desde" class="form-control"
+                       value="@Model.FechaDesde?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold small">Hasta</label>
+                <input type="date" name="hasta" class="form-control"
+                       value="@Model.FechaHasta?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-12 col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i>Filtrar
+                </button>
+                <a asp-action="Movimientos" asp-route-id="@Model.ProductoId"
+                   class="btn btn-outline-secondary" title="Limpiar">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA DE MOVIMIENTOS -->
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="card-body p-0">
+        @if (!Model.Movimientos.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-history fa-3x mb-3 opacity-25"></i>
+                <p class="mb-0">No hay movimientos registrados en el período seleccionado.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha / Hora</th>
+                            <th>Tipo</th>
+                            <th class="text-end">Cantidad</th>
+                            <th class="text-end d-none d-md-table-cell">Stock antes</th>
+                            <th class="text-end">Stock después</th>
+                            <th class="d-none d-lg-table-cell">Motivo</th>
+                            <th class="d-none d-md-table-cell">Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.Movimientos)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="small fw-semibold">@m.FechaHora.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted" style="font-size:.75rem;">@m.FechaHora.ToLocalTime().ToString("HH:mm:ss")</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@m.TipoClase bg-opacity-15 text-@m.TipoClase px-2 py-1">
+                                        <i class="fas @m.TipoIcono me-1"></i>@m.TipoLabel
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold">
+                                    <span class="text-@m.TipoClase">
+                                        @(m.Tipo is TipoMovimiento.Salida or TipoMovimiento.AjusteNegativo or TipoMovimiento.Venta ? "−" : "+")@m.Cantidad.ToString("G29") @Model.UnidadStock
+                                    </span>
+                                </td>
+                                <td class="text-end text-muted d-none d-md-table-cell">
+                                    @m.StockAntes.ToString("G29") @Model.UnidadStock
+                                </td>
+                                <td class="text-end fw-semibold">
+                                    @m.StockDespues.ToString("G29") @Model.UnidadStock
+                                </td>
+                                <td class="d-none d-lg-table-cell text-muted small">
+                                    @(m.Motivo ?? "—")
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge bg-light text-dark border">@m.UsuarioNombre</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalMovimientos > Model.Movimientos.Count)
+            {
+                <div class="text-center py-3 border-top">
+                    <small class="text-muted">
+                        Mostrando @Model.Movimientos.Count de @Model.TotalMovimientos movimientos.
+                        Use el filtro de fechas para acotar los resultados.
+                    </small>
+                </div>
+            }
+        }
+    </div>
+</div>

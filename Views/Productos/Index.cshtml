@@ -1,0 +1,368 @@
+@model DespensaApp.Models.ViewModels.ProductoIndexViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Inventario de Productos";
+    ViewData["ActiveMenu"] = "Productos";
+
+    string PaginaUrl(int p)
+    {
+        var f = Model.Filtro;
+        var qs = new System.Text.StringBuilder($"?pagina={p}");
+        if (!string.IsNullOrWhiteSpace(f.Busqueda)) qs.Append($"&busqueda={Uri.EscapeDataString(f.Busqueda)}");
+        if (f.CategoriaId.HasValue) qs.Append($"&categoriaId={f.CategoriaId}");
+        if (f.TipoVenta.HasValue) qs.Append($"&tipoVenta={f.TipoVenta}");
+        if (f.Activo.HasValue) qs.Append($"&activo={f.Activo}");
+        if (f.SoloStockBajo) qs.Append("&soloStockBajo=true");
+        return qs.ToString();
+    }
+}
+
+<!-- HEADER -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">Inventario de Productos</h4>
+        <p class="text-muted mb-0 small">@Model.TotalItems producto(s) encontrado(s)</p>
+    </div>
+    @if (User.IsInRole("Admin"))
+    {
+        <button type="button" class="btn btn-outline-secondary" id="btnImprimirEtiquetas" disabled>
+            <i class="fas fa-print me-2"></i>Imprimir etiquetas <span id="contadorSeleccion"></span>
+        </button>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Producto
+        </a>
+    }
+    <a href="@PaginaUrl(1)&soloStockBajo=@(!Model.Filtro.SoloStockBajo)"
+       class="btn @(Model.Filtro.SoloStockBajo ? "btn-danger" : "btn-outline-danger")">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Stock bajo
+        @if (!Model.Filtro.SoloStockBajo)
+        {
+            <text>· ver todos</text>
+        }
+    </a>
+</div>
+
+<!-- ALERTAS TEMPDATA -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-3">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-3">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- FILTROS -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" name="busqueda" value="@Model.Filtro.Busqueda"
+                           class="form-control border-start-0"
+                           placeholder="Nombre o código de barras..." />
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="categoriaId" class="form-select">
+                    <option value="">Todas las categorías</option>
+                    @foreach (var cat in Model.Categorias)
+                    {
+                        <option value="@cat.Value" selected="@(Model.Filtro.CategoriaId?.ToString() == cat.Value)">
+                            @cat.Text
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="tipoVenta" class="form-select">
+                    <option value="">Todos los tipos</option>
+                    <option value="Unidad" selected="@(Model.Filtro.TipoVenta == TipoVenta.Unidad)">Unidad</option>
+                    <option value="Kg" selected="@(Model.Filtro.TipoVenta == TipoVenta.Kg)">Por Kg</option>
+                    <option value="Gramo" selected="@(Model.Filtro.TipoVenta == TipoVenta.Gramo)">Por Gramo</option>
+                    <option value="Cien_g" selected="@(Model.Filtro.TipoVenta == TipoVenta.Cien_g)">Por 100g</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select name="activo" class="form-select">
+                    <option value="" selected="@(Model.Filtro.Activo == null)">Solo activos</option>
+                    <option value="true" selected="@(Model.Filtro.Activo == true)">Activos</option>
+                    <option value="false" selected="@(Model.Filtro.Activo == false)">Inactivos</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i>Filtrar
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Limpiar filtros">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA -->
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="card-body p-0">
+        @if (!Model.Productos.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                <p class="mb-0">No se encontraron productos con los filtros aplicados.</p>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-action="Create" class="btn btn-outline-primary mt-3">
+                        <i class="fas fa-plus me-1"></i>Crear primer producto
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <th style="width:30px">
+                                    <input type="checkbox" class="form-check-input" id="chkSeleccionarTodos" />
+                                </th>
+                            }
+                            <th style="width:60px">Imagen</th>
+                            <th>Producto</th>
+                            <th class="d-none d-md-table-cell">Categoría</th>
+                            <th class="d-none d-lg-table-cell">Tipo</th>
+                            <th class="text-end">Precio</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center d-none d-md-table-cell">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Productos)
+                        {
+                            <tr>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <td>
+                                        <input type="checkbox" class="form-check-input chk-producto" value="@p.Id" />
+                                    </td>
+                                }
+                                <!-- Imagen -->
+                                <td>
+                                    @if (!string.IsNullOrEmpty(p.ImagenUrl))
+                                    {
+                                        <img src="@p.ImagenUrl" alt="@p.Nombre"
+                                             class="rounded" style="width:48px;height:48px;object-fit:cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded bg-light d-flex align-items-center justify-content-center"
+                                             style="width:48px;height:48px;">
+                                            <i class="fas fa-box text-muted"></i>
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Nombre + código -->
+                                <td>
+                                    <div class="fw-semibold">@p.Nombre</div>
+                                    @if (!string.IsNullOrEmpty(p.CodigoBarra))
+                                    {
+                                        <div class="text-muted small">
+                                            <i class="fas fa-barcode me-1"></i>@p.CodigoBarra
+                                        </div>
+                                    }
+                                    @if (p.VencimientoTexto is not null)
+                                    {
+                                        <div class="text-@p.VencimientoClase small fw-semibold">
+                                            <i class="fas fa-hourglass-half me-1"></i>@p.VencimientoTexto
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Categoría -->
+                                <td class="d-none d-md-table-cell text-muted small">
+                                    @(p.Categoria ?? "—")
+                                </td>
+
+                                <!-- Tipo venta -->
+                                <td class="d-none d-lg-table-cell">
+                                    <span class="badge bg-secondary bg-opacity-15 text-secondary fw-normal">
+                                        @p.TipoVentaLabel
+                                    </span>
+                                </td>
+
+                                <!-- Precio -->
+                                <td class="text-end fw-semibold">Gs. @p.PrecioVenta.ToString("N0")</td>
+
+                                <!-- Stock -->
+                                <td class="text-center">
+                                    <span class="badge bg-@p.StockClase bg-opacity-15 text-@p.StockClase px-2 py-1"
+                                          style="font-size:.8rem;">
+                                        @p.StockActual.ToString("G29") @p.UnidadStock
+                                    </span>
+                                    @if (p.StockTexto != "OK")
+                                    {
+                                        <div class="text-@p.StockClase" style="font-size:.7rem;">@p.StockTexto</div>
+                                    }
+                                </td>
+
+                                <!-- Estado activo -->
+                                <td class="text-center d-none d-md-table-cell">
+                                    @if (p.Activo)
+                                    {
+                                        <span class="badge bg-success bg-opacity-15 text-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-15 text-secondary">Inactivo</span>
+                                    }
+                                </td>
+
+                                <!-- Acciones -->
+                                <td class="text-center">
+                                    <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                        <a asp-action="Detail" asp-route-id="@p.Id"
+                                           class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@p.Id"
+                                               class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="fas fa-pen"></i>
+                                            </a>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-warning"
+                                                    title="Ajustar stock"
+                                                    onclick="abrirAjusteStock(@p.Id,'@Html.Raw(p.Nombre.Replace("'","&#39;"))','@p.StockActual','@p.UnidadStock','@p.CodigoBarra')">
+                                                <i class="fas fa-sliders-h"></i>
+                                            </button>
+                                            <form asp-action="Delete" asp-route-id="@p.Id"
+                                                  method="post" class="d-inline"
+                                                  onsubmit="return confirm('¿Desactivar «@Html.Raw(p.Nombre.Replace("'","&#39;"))»?')">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Desactivar">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        <a asp-action="Movimientos" asp-route-id="@p.Id"
+                                           class="btn btn-sm btn-outline-info" title="Historial stock">
+                                            <i class="fas fa-history"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            @if (Model.TotalPaginas > 1)
+            {
+                <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                    <small class="text-muted">
+                        Página @Model.Filtro.Pagina de @Model.TotalPaginas
+                        (@Model.TotalItems registros)
+                    </small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(Model.Filtro.Pagina <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@PaginaUrl(Model.Filtro.Pagina - 1)">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            @for (int i = Math.Max(1, Model.Filtro.Pagina - 2);
+                                  i <= Math.Min(Model.TotalPaginas, Model.Filtro.Pagina + 2);
+                                  i++)
+                            {
+                                <li class="page-item @(i == Model.Filtro.Pagina ? "active" : "")">
+                                    <a class="page-link" href="@PaginaUrl(i)">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.Filtro.Pagina >= Model.TotalPaginas ? "disabled" : "")">
+                                <a class="page-link" href="@PaginaUrl(Model.Filtro.Pagina + 1)">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- MODAL AJUSTE STOCK -->
+@if (User.IsInRole("Admin"))
+{
+    <partial name="_ModalAjusteStock" />
+}
+
+@section Scripts {
+<script>
+function abrirAjusteStock(id, nombre, stock, unidad, codigo) {
+    document.getElementById('ajusteProductoId').value = id;
+    document.getElementById('ajusteNombreProducto').textContent = nombre;
+    document.getElementById('ajusteStockActual').textContent = stock + ' ' + unidad;
+    document.getElementById('ajusteUnidadLabel').textContent = unidad ? '(' + unidad + ')' : '';
+    document.getElementById('ajusteCantidad').value = '';
+    document.getElementById('ajusteMotivo').value = '';
+
+    const codigoEl = document.getElementById('ajusteCodigoBarra');
+    if (codigo && codigo !== '') {
+        codigoEl.classList.remove('d-none');
+        document.getElementById('ajusteCodigo').textContent = codigo;
+    } else {
+        codigoEl.classList.add('d-none');
+    }
+
+    // Limpiar selección de tipo
+    document.querySelectorAll('input[name="Tipo"]').forEach(r => r.checked = false);
+
+    new bootstrap.Modal(document.getElementById('modalAjusteStock')).show();
+    setTimeout(() => document.getElementById('ajusteCantidad').focus(), 400);
+}
+
+// ── Selección múltiple para impresión de etiquetas ──────────────
+function actualizarBotonEtiquetas() {
+    const seleccionados = document.querySelectorAll('.chk-producto:checked');
+    const btn = document.getElementById('btnImprimirEtiquetas');
+    const contador = document.getElementById('contadorSeleccion');
+    if (!btn) return;
+    btn.disabled = seleccionados.length === 0;
+    contador.textContent = seleccionados.length > 0 ? `(${seleccionados.length})` : '';
+}
+
+document.querySelectorAll('.chk-producto').forEach(chk => {
+    chk.addEventListener('change', actualizarBotonEtiquetas);
+});
+
+document.getElementById('chkSeleccionarTodos')?.addEventListener('change', function () {
+    document.querySelectorAll('.chk-producto').forEach(chk => chk.checked = this.checked);
+    actualizarBotonEtiquetas();
+});
+
+document.getElementById('btnImprimirEtiquetas')?.addEventListener('click', () => {
+    const ids = Array.from(document.querySelectorAll('.chk-producto:checked')).map(c => c.value);
+    if (ids.length === 0) return;
+    const qs = ids.map(id => `ids=${id}`).join('&');
+    window.open(`/Productos/ImprimirEtiquetas?${qs}`, '_blank');
+});
+</script>
+}

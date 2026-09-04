@@ -1,0 +1,116 @@
+@model DespensaApp.Models.ViewModels.LoginViewModel
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Iniciar Sesión";
+    var nombreNegocio = ViewData["NombreNegocio"]?.ToString() ?? "Despensa App";
+}
+
+<div class="container" style="max-width: 440px; padding: 1rem;">
+    <div class="card border-0 shadow-lg" style="border-radius: 18px; overflow: hidden;">
+
+        <!-- Header de la card -->
+        <div class="card-header text-center border-0 py-4"
+             style="background: linear-gradient(135deg, #1e40af, #2563eb);">
+            <div class="mb-3">
+                <span style="background:rgba(255,255,255,.15); border-radius: 50%; width:72px; height:72px;
+                             display:inline-flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-store fa-2x text-white"></i>
+                </span>
+            </div>
+            <h4 class="text-white mb-0 fw-bold">@nombreNegocio</h4>
+            <p class="text-white-50 mb-0 small">Sistema de gestión de despensa</p>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="card-body px-4 py-4">
+            <h5 class="mb-4 text-center text-secondary fw-normal">Ingresa tus credenciales</h5>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ContainsKey(string.Empty))
+            {
+                <div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    @ViewData.ModelState[string.Empty]!.Errors.FirstOrDefault()?.ErrorMessage
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <form asp-action="Login" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label fw-semibold text-secondary small text-uppercase ls-1">Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-envelope text-muted"></i>
+                        </span>
+                        <input asp-for="Email" class="form-control border-start-0 ps-0"
+                               placeholder="usuario@email.com" autocomplete="email"
+                               style="border-left:none;" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <!-- Contraseña -->
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-semibold text-secondary small text-uppercase">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="fas fa-lock text-muted"></i>
+                        </span>
+                        <input asp-for="Password" type="password" id="passwordInput"
+                               class="form-control border-start-0 border-end-0 ps-0"
+                               placeholder="••••••••" autocomplete="current-password" />
+                        <button class="btn btn-outline-secondary border-start-0" type="button"
+                                id="togglePassword" title="Ver/ocultar contraseña">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <!-- Recordarme -->
+                <div class="mb-4 d-flex align-items-center">
+                    <div class="form-check">
+                        <input asp-for="Recordarme" class="form-check-input" id="Recordarme" />
+                        <label class="form-check-label text-secondary" for="Recordarme">
+                            Recordarme por 7 días
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botón -->
+                <button type="submit" class="btn w-100 py-2 fw-bold"
+                        style="background:linear-gradient(135deg,#1e40af,#2563eb); color:#fff; border-radius:8px; font-size:1rem; letter-spacing:.02em;">
+                    <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="card-footer text-center border-0 py-3 bg-light">
+            <small class="text-muted">
+                <i class="fas fa-shield-alt me-1 text-primary"></i>
+                Acceso restringido · @nombreNegocio &copy; @DateTime.Now.Year
+            </small>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const input = document.getElementById('passwordInput');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    </script>
+}

@@ -1,0 +1,275 @@
+@model DespensaApp.Models.ViewModels.VentaIndexViewModel
+@{
+    Layout = "_Layout";
+    ViewData["ActiveMenu"] = Model.SoloMisVentas ? "MisVentas" : "Ventas";
+    var titulo = Model.SoloMisVentas ? "Mis Ventas del Día" : "Historial de Ventas";
+
+    string PaginaUrl(int p)
+    {
+        var f = Model.Filtro;
+        var sb = new System.Text.StringBuilder($"?pagina={p}");
+        sb.Append($"&periodo={f.Periodo}");
+        if (f.FechaDesde.HasValue) sb.Append($"&fechaDesde={f.FechaDesde:yyyy-MM-dd}");
+        if (f.FechaHasta.HasValue) sb.Append($"&fechaHasta={f.FechaHasta:yyyy-MM-dd}");
+        if (f.UsuarioId.HasValue) sb.Append($"&usuarioId={f.UsuarioId}");
+        if (f.MetodoPago.HasValue) sb.Append($"&metodoPago={f.MetodoPago}");
+        if (f.Estado.HasValue) sb.Append($"&estado={f.Estado}");
+        return sb.ToString();
+    }
+}
+
+<!-- HEADER -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div class="me-auto">
+        <h4 class="mb-0 fw-bold">@titulo</h4>
+        <p class="text-muted mb-0 small">@Model.CantidadVentas venta(s)</p>
+    </div>
+    <a asp-action="Nueva" class="btn btn-success">
+        <i class="fas fa-plus me-2"></i>Nueva Venta
+    </a>
+    @if (User.IsInRole("Admin") && !Model.SoloMisVentas)
+    {
+        <a asp-action="ExportarCsv"
+           asp-route-periodo="@Model.Filtro.Periodo"
+           asp-route-fechaDesde="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")"
+           asp-route-fechaHasta="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")"
+           class="btn btn-outline-secondary">
+            <i class="fas fa-file-csv me-1"></i>Exportar CSV
+        </a>
+    }
+</div>
+
+<!-- ALERTAS -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-3">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-3">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- STATS -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-box bg-success bg-opacity-10">
+                    <i class="fas fa-receipt text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Ventas</div>
+                    <div class="fs-4 fw-bold">@Model.CantidadVentas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="d-flex align-items-center gap-3">
+                <div class="icon-box bg-primary bg-opacity-10">
+                    <i class="fas fa-dollar-sign text-primary"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total del período</div>
+                    <div class="fs-4 fw-bold">Gs. @Model.TotalPeriodo.ToString("N0")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FILTROS -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <!-- Período rápido -->
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold small">Período</label>
+                <select name="periodo" class="form-select" id="selectPeriodo">
+                    @foreach (PeriodoFiltro p in Enum.GetValues<PeriodoFiltro>())
+                    {
+                        <option value="@p" selected="@(Model.Filtro.Periodo == p)">
+                            @(p switch { PeriodoFiltro.Hoy => "Hoy", PeriodoFiltro.Semana => "Esta semana", PeriodoFiltro.Mes => "Este mes", _ => "Personalizado" })
+                        </option>
+                    }
+                </select>
+            </div>
+            <!-- Rango personalizado -->
+            <div class="col-6 col-md-2" id="rangoDesde"
+                 style="display:@(Model.Filtro.Periodo == PeriodoFiltro.Personalizado ? "" : "none")">
+                <label class="form-label fw-semibold small">Desde</label>
+                <input type="date" name="fechaDesde" class="form-select"
+                       value="@Model.Filtro.FechaDesde?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6 col-md-2" id="rangoHasta"
+                 style="display:@(Model.Filtro.Periodo == PeriodoFiltro.Personalizado ? "" : "none")">
+                <label class="form-label fw-semibold small">Hasta</label>
+                <input type="date" name="fechaHasta" class="form-select"
+                       value="@Model.Filtro.FechaHasta?.ToString("yyyy-MM-dd")" />
+            </div>
+            <!-- Cajero (solo admin) -->
+            @if (User.IsInRole("Admin") && !Model.SoloMisVentas && Model.Cajeros.Any())
+            {
+                <div class="col-6 col-md-2">
+                    <label class="form-label fw-semibold small">Cajero</label>
+                    <select name="usuarioId" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach (var c in Model.Cajeros)
+                        {
+                            <option value="@c.Value" selected="@(Model.Filtro.UsuarioId?.ToString() == c.Value)">@c.Text</option>
+                        }
+                    </select>
+                </div>
+            }
+            <!-- Método de pago -->
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold small">Método pago</label>
+                <select name="metodoPago" class="form-select">
+                    <option value="">Todos</option>
+                    @foreach (MetodoPago mp in Enum.GetValues<MetodoPago>())
+                    {
+                        <option value="@mp" selected="@(Model.Filtro.MetodoPago == mp)">@mp</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter"></i>
+                </button>
+                <a asp-action="@(Model.SoloMisVentas ? "MisVentasHoy" : "Index")"
+                   class="btn btn-outline-secondary" title="Limpiar">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABLA -->
+<div class="card border-0 shadow-sm" style="border-radius:12px;">
+    <div class="card-body p-0">
+        @if (!Model.Ventas.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-receipt fa-3x mb-3 opacity-25 d-block"></i>
+                <p class="mb-0">No hay ventas en el período seleccionado.</p>
+                <a asp-action="Nueva" class="btn btn-outline-success mt-3">
+                    <i class="fas fa-plus me-1"></i>Nueva venta
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Fecha / Hora</th>
+                            @if (!Model.SoloMisVentas)
+                            {
+                                <th class="d-none d-md-table-cell">Cajero</th>
+                            }
+                            <th class="text-center d-none d-sm-table-cell">Items</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center d-none d-md-table-cell">Método</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var v in Model.Ventas)
+                        {
+                            <tr class="@(v.Estado == EstadoVenta.Anulada ? "table-danger bg-opacity-50" : "")">
+                                <td>
+                                    <span class="fw-mono fw-semibold" style="font-size:.85rem;">@v.NumeroTicket</span>
+                                </td>
+                                <td>
+                                    <div class="small fw-semibold">@v.FechaHora.ToLocalTime().ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted" style="font-size:.75rem">@v.FechaHora.ToLocalTime().ToString("HH:mm")</div>
+                                </td>
+                                @if (!Model.SoloMisVentas)
+                                {
+                                    <td class="d-none d-md-table-cell text-muted small">@v.Cajero</td>
+                                }
+                                <td class="text-center d-none d-sm-table-cell">
+                                    <span class="badge bg-secondary bg-opacity-15 text-secondary">@v.CantidadItems</span>
+                                </td>
+                                <td class="text-end fw-bold">
+                                    Gs. @v.Total.ToString("N0")
+                                    @if (v.Descuento > 0)
+                                    {
+                                        <div class="text-danger" style="font-size:.72rem;">-Gs. @v.Descuento.ToString("N0")</div>
+                                    }
+                                </td>
+                                <td class="text-center d-none d-md-table-cell">
+                                    <i class="fas @v.MetodoPagoIcono me-1 text-muted"></i>
+                                    <span class="small">@v.MetodoPagoLabel</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-@v.EstadoClase bg-opacity-15 text-@v.EstadoClase">
+                                        @v.Estado
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a asp-action="Detail" asp-route-id="@v.Id"
+                                           class="btn btn-sm btn-outline-primary" title="Ver detalle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Ticket" asp-route-id="@v.Id"
+                                           class="btn btn-sm btn-outline-secondary" title="Imprimir ticket"
+                                           target="_blank">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPaginas > 1)
+            {
+                <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                    <small class="text-muted">Pág. @Model.Filtro.Pagina / @Model.TotalPaginas · @Model.TotalItems ventas</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(Model.Filtro.Pagina <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@PaginaUrl(Model.Filtro.Pagina - 1)"><i class="fas fa-chevron-left"></i></a>
+                            </li>
+                            @for (int i = Math.Max(1, Model.Filtro.Pagina - 2);
+                                  i <= Math.Min(Model.TotalPaginas, Model.Filtro.Pagina + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.Filtro.Pagina ? "active" : "")">
+                                    <a class="page-link" href="@PaginaUrl(i)">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.Filtro.Pagina >= Model.TotalPaginas ? "disabled" : "")">
+                                <a class="page-link" href="@PaginaUrl(Model.Filtro.Pagina + 1)"><i class="fas fa-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('selectPeriodo').addEventListener('change', function () {
+    const es = this.value === 'Personalizado';
+    document.getElementById('rangoDesde').style.display = es ? '' : 'none';
+    document.getElementById('rangoHasta').style.display = es ? '' : 'none';
+});
+</script>
+}

@@ -1,0 +1,71 @@
+@model DespensaApp.Models.ViewModels.EtiquetasViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Etiquetas</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .toolbar { margin-bottom: 16px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .etiqueta {
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            break-inside: avoid;
+        }
+        .etiqueta .nombre { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .sin-codigo { color: #94a3b8; font-size: 12px; padding: 20px 0; }
+        @@media print {
+            .toolbar { display: none; }
+            .etiqueta { border: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="window.print()">Imprimir</button>
+        <a href="/Productos/Index" style="margin-left:8px;">Volver al inventario</a>
+    </div>
+
+    <div class="grid">
+        @foreach (var p in Model.Productos)
+        {
+            <div class="etiqueta">
+                <div class="nombre">@p.Nombre</div>
+                @if (p.EsEan13)
+                {
+                    <div id="svg-@p.Id"></div>
+                }
+                else if (!string.IsNullOrEmpty(p.CodigoBarra))
+                {
+                    <div style="font-family:monospace;font-size:13px;">@p.CodigoBarra</div>
+                }
+                else
+                {
+                    <div class="sin-codigo">Sin código de barras</div>
+                }
+            </div>
+        }
+    </div>
+
+    <script src="~/js/ean13-render.js"></script>
+    <script>
+        @foreach (var p in Model.Productos)
+        {
+            if (p.EsEan13)
+            {
+                @:Ean13Render.renderSvg('svg-@p.Id', '@p.CodigoBarra', { moduleWidth: 1.6, barHeight: 55 });
+            }
+        }
+    </script>
+</body>
+</html>
