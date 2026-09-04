@@ -101,3 +101,30 @@ git push
 
 No cambia nada: sigue usando `ConnectionStrings:DefaultConnection` de `appsettings.json` más la
 variable `DESPENSA_DB_PASSWORD`. `DATABASE_URL` solo se usa si está definida.
+
+---
+
+## Apuntar a otra base (migrar a un Supabase nuevo)
+
+La app elige la base mirando la variable `DATABASE_URL`: si existe usa esa, si no usa la de
+`appsettings.json` (localhost). Migrar a otra base es prender esa variable en la terminal.
+
+1. En Supabase: **Connect** → *Connection string* → **Session pooler**, y reemplazar
+   `[YOUR-PASSWORD]` por la contraseña del proyecto.
+2. En PowerShell, parado en la carpeta del proyecto:
+
+   ```powershell
+   $env:DATABASE_URL = 'postgresql://postgres.XXXX:TU-PASS@aws-0-sa-east-1.pooler.supabase.com:5432/postgres'
+   dotnet ef migrations list   # todas en (Pending) = base vacía y conexión OK
+   dotnet ef database update   # crea las tablas
+   ```
+
+   Comillas simples: con dobles, PowerShell expande cualquier `$` de la contraseña.
+
+3. Para volver a la base local, cerrar esa terminal o `Remove-Item Env:DATABASE_URL`.
+
+> Mientras esa terminal tenga la variable puesta, **todo** lo que se corra ahí va contra la base
+> remota, incluido `dotnet run`.
+
+La base nueva queda con la estructura vacía: sin productos y sin usuarios. El usuario admin se
+crea insertándolo por SQL o dejando que lo genere la app en el primer arranque.
